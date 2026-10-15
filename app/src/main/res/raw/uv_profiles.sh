@@ -133,6 +133,29 @@ wake_all_cores() {
     sleep 1
 }
 
+# Governor schedutil con rate limit 5000.
+#
+# Va applicato anche con profilo OFF: e una rete di sicurezza sul
+# governor, indipendente dal profilo. OFF ripristina margini e cap di
+# fabbrica, ma il governor resta quello impostato qui.
+apply_governor() {
+    for c in 0 1 2 3 4 5 6 7; do
+        f="/sys/devices/system/cpu/cpu$c/online"
+        # salta i core spenti: su quelli le scritture falliscono
+        [ -f "$f" ] && [ "$(cat "$f" 2>/dev/null)" = "0" ] && continue
+        d=/sys/devices/system/cpu/cpu$c/cpufreq
+        [ -f "$d/scaling_governor" ] || continue
+        avail=$(cat "$d/scaling_available_governors" 2>/dev/null)
+        case " $avail " in
+            *" schedutil "*) echo schedutil > "$d/scaling_governor" 2>/dev/null ;;
+        esac
+        if [ -f "$d/schedutil/up_rate_limit_us" ]; then
+            echo 5000 > "$d/schedutil/up_rate_limit_us" 2>/dev/null
+            echo 5000 > "$d/schedutil/down_rate_limit_us" 2>/dev/null
+        fi
+    done
+}
+
 apply() {
     name="$1"
     p="$(get_profile "$name")"
@@ -170,6 +193,7 @@ apply() {
         done
         log "profilo off: valori di fabbrica ripristinati"
         echo "$n" > "$ACTIVE"
+        apply_governor
         return 0
     fi
 
@@ -202,22 +226,8 @@ apply() {
         done
     fi
 
-    # governor schedutil con rate limit 5000, se esposto
-    for c in 0 1 2 3 4 5 6 7; do
-        f="/sys/devices/system/cpu/cpu$c/online"
-        # salta i core spenti: su quelli le scritture falliscono
-        [ -f "$f" ] && [ "$(cat "$f" 2>/dev/null)" = "0" ] && continue
-        d=/sys/devices/system/cpu/cpu$c/cpufreq
-        [ -f "$d/scaling_governor" ] || continue
-        avail=$(cat "$d/scaling_available_governors" 2>/dev/null)
-        case " $avail " in
-            *" schedutil "*) echo schedutil > "$d/scaling_governor" 2>/dev/null ;;
-        esac
-        if [ -f "$d/schedutil/up_rate_limit_us" ]; then
-            echo 5000 > "$d/schedutil/up_rate_limit_us" 2>/dev/null
-            echo 5000 > "$d/schedutil/down_rate_limit_us" 2>/dev/null
-        fi
-    done
+    # governor schedutil con rate limit 5000
+    apply_governor
 
     echo "$n" > "$ACTIVE"
     log "profilo attivo: $n"

@@ -89,30 +89,25 @@ lo script esce senza fare nulla.
 Alternativa senza toccare nulla: **Termux + Termux:Boot**, che fa la
 stessa cosa con un'app in piu.
 
-## Conflitto con schedutil-uv2
+## Il governor e gestito dall'app
 
-Attenzione a questo modulo, se lo usi insieme.
+Su questo kernel la cartella `cpu*/cpufreq/schedutil/` esiste ed espone
+`up_rate_limit_us` e `down_rate_limit_us`. Lo script dei profili imposta
+governor `schedutil` e rate limit `5000/5000`, **anche con profilo
+`off`**: e una rete di sicurezza sul governor, indipendente dal profilo,
+e `off` ripristina solo margini e cap di fabbrica.
 
-Anche `schedutil-uv2` scrive i margini e i cap a ogni avvio, e i due
-script girano in parallelo: **vince l'ultimo che scrive**. Con il solo
-`service.d` (primo passaggio a 40 s dal boot) succedeva che
-`schedutil-uv2` (45 s) sovrascrivesse il profilo scelto:
+Non serve quindi un modulo che faccia la stessa cosa. Se ne hai uno che
+imposta anch'esso governor, margini e cap, **rimuovilo**: i due script
+girano in parallelo all'avvio e vince l'ultimo che scrive, quindi
+finiresti per avere valori alternati a ogni riavvio.
 
-```
-12:23:31  profilo sixcore applicato
-12:23:36  schedutil-uv2 imposta policy4 2002000, policy6 2002000
-          e i margini lit -3 / mid -3 / big -4 / g3d -2
-```
-
-Per questo lo script riapplica il profilo tre volte (a 40, 95 e 150
-secondi dal boot): gli ultimi passaggi arrivano dopo e vincono. Serve
-anche per il caso in cui `pm_qos` del vendor rifiuti una scrittura su
-`scaling_max_freq` nelle prime decine di secondi dopo l'avvio.
-
-Se vuoi eliminare il conflitto alla radice, `schedutil-uv2` andrebbe
-ridotto alla sola parte governor: da solo sul questo kernel non fa
-niente, perche il governor e gia `schedutil` e la cartella `schedutil/`
-non esiste.
+Se per un motivo vuoi tenerlo, lo script in `service.d` riapplica il
+profilo tre volte (a 40, 95 e 150 secondi dal boot), cosi arriva dopo e
+vince lui. Serve anche per un altro motivo: al boot `pm_qos` del vendor
+rifiuta certe scritture su `scaling_max_freq`, e il primo passaggio
+registra cose come `cap richiesto 2002000, ottenuto 1456000`. Il
+passaggio successivo lo corregge.
 
 ## Compilare
 
