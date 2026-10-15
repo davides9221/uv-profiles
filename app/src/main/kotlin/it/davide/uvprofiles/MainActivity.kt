@@ -106,6 +106,12 @@ class MainActivity : Activity() {
         root.addView(statusBlock)
 
         setContentView(scroll)
+
+        // Lo script di applicazione va scritto a ogni avvio dell'app, non
+        // solo quando si preme un pulsante: dopo un reboot e il boot script
+        // in /data/adb/service.d a doverlo richiamare, e se l'app non e mai
+        // stata aperta quel file non esisterebbe.
+        RootShell.writeScript(resources, R.raw.uv_profiles, RootShell.APPLY_SCRIPT)
     }
 
     override fun onResume() {

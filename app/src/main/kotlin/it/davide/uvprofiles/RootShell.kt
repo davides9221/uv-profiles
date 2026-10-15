@@ -24,7 +24,13 @@ import android.content.res.Resources
 object RootShell {
 
     const val READ_SCRIPT = "/data/local/tmp/uv_profiles_read.sh"
-    const val APPLY_SCRIPT = "/data/local/tmp/uv_profiles_apply.sh"
+
+    /**
+     * Percorso persistente: /data/local/tmp viene cancellato a ogni reboot,
+     * e serve che lo script di applicazione sopravviva, perche e il boot
+     * script in /data/adb/service.d a richiamarlo.
+     */
+    const val APPLY_SCRIPT = "/data/adb/uv-profiles/apply.sh"
 
     /** Esegue un comando come root e restituisce l'output. Stringa vuota in caso di errore. */
     fun run(cmd: String): String = try {
@@ -47,10 +53,13 @@ object RootShell {
 
     /**
      * Copia una risorsa raw su un file eseguibile da root.
-     * /data/local/tmp non e scrivibile dall'app senza root, quindi il
-     * passaggio avviene mandando lo script su stdin di `cat`.
+     * La cartella viene creata se manca: /data/local/tmp non e scrivibile
+     * dall'app senza root, quindi il passaggio avviene mandando lo script
+     * su stdin di `cat`.
      */
     fun writeScript(res: Resources, resId: Int, path: String): Boolean = try {
+        val dir = path.substringBeforeLast('/')
+        if (dir.isNotEmpty()) runForCode("mkdir -p $dir")
         val p = Runtime.getRuntime().exec(arrayOf("su", "-c", "cat > $path"))
         res.openRawResource(resId).use { input ->
             p.outputStream.use { out -> input.copyTo(out) }

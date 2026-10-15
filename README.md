@@ -68,23 +68,51 @@ dei margini.
 ## Persistenza al boot
 
 L'app da sola non puo riapplicare il profilo dopo un riavvio: serve
-qualcosa che giri all'avvio del sistema, e un'app non puo farlo. Due
-opzioni:
+qualcosa che giri all'avvio del sistema, e un'app non puo farlo. La
+soluzione senza moduli e `device/service.d-uv-profiles.sh`.
 
-- **modulo Magisk** — un `service.sh` che chiama lo script dell'app:
-  ```
-  sh /data/local/tmp/uv_profiles_apply.sh "$(cat /data/adb/uv-profiles/active)"
-  ```
-  Il profilo attivo e gia salvato in `/data/adb/uv-profiles/active`.
-- **Termux + Termux:Boot** — senza modulo, ma con un'app in piu da
-  installare.
+Magisk esegue tutti gli script in `/data/adb/service.d/` dopo l'avvio.
+Non e un modulo: e una cartella, quindi niente da installare o
+disinstallare dalla sua interfaccia.
 
-Senza nessuna delle due, dopo un riavvio i valori tornano quelli di
-fabbrica e basta toccare un pulsante.
+```
+adb push device/service.d-uv-profiles.sh /data/local/tmp/
+adb shell su -c 'cp /data/local/tmp/service.d-uv-profiles.sh /data/adb/service.d/uv-profiles.sh'
+adb shell su -c 'chmod 755 /data/adb/service.d/uv-profiles.sh'
+```
 
-Il modulo `schedutil-uv2` e una cosa diversa: imposta il governor
-`schedutil` con rate limit come rete di sicurezza se il kernel dovesse
-problemi, e va tenuto.
+Lo script richiama `/data/adb/uv-profiles/apply.sh`, che e lo stesso
+script di profili contenuto nell'app: i profili restano definiti in un
+solo posto, e l'app lo riscrive a ogni avvio. Se quel file non esiste
+lo script esce senza fare nulla.
+
+Alternativa senza toccare nulla: **Termux + Termux:Boot**, che fa la
+stessa cosa con un'app in piu.
+
+## Conflitto con schedutil-uv2
+
+Attenzione a questo modulo, se lo usi insieme.
+
+Anche `schedutil-uv2` scrive i margini e i cap a ogni avvio, e i due
+script girano in parallelo: **vince l'ultimo che scrive**. Con il solo
+`service.d` (primo passaggio a 40 s dal boot) succedeva che
+`schedutil-uv2` (45 s) sovrascrivesse il profilo scelto:
+
+```
+12:23:31  profilo sixcore applicato
+12:23:36  schedutil-uv2 imposta policy4 2002000, policy6 2002000
+          e i margini lit -3 / mid -3 / big -4 / g3d -2
+```
+
+Per questo lo script riapplica il profilo tre volte (a 40, 95 e 150
+secondi dal boot): gli ultimi passaggi arrivano dopo e vincono. Serve
+anche per il caso in cui `pm_qos` del vendor rifiuti una scrittura su
+`scaling_max_freq` nelle prime decine di secondi dopo l'avvio.
+
+Se vuoi eliminare il conflitto alla radice, `schedutil-uv2` andrebbe
+ridotto alla sola parte governor: da solo sul questo kernel non fa
+niente, perche il governor e gia `schedutil` e la cartella `schedutil/`
+non esiste.
 
 ## Compilare
 
