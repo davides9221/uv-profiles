@@ -1,0 +1,11 @@
+# La chiave di firma di upload e la sua password non devono MAI finire
+# qui: se la chiave si perde non si puo piu aggiornare l'app su Play.
+keystore.properties
+keystore/
+
+# Artefatti di build
+build/
+.gradle/
+local.properties
+*.iml
+.idea/

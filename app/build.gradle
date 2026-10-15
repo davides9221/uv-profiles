@@ -1,0 +1,81 @@
+plugins {
+    // Da AGP 9.0 il supporto Kotlin e integrato: NON applicare piu
+    // org.jetbrains.kotlin.android, altrimenti la build fallisce con
+    // "plugin is no longer required for Kotlin support since AGP 9.0".
+    id 'com.android.application'
+}
+
+// Chiave di firma.
+// Fuori dal controllo versione: i dati arrivano da keystore.properties,
+// se manca (build su una macchina senza credenziali) si resta sulla
+// chiave di debug e la build non fallisce.
+def keystorePropsFile = rootProject.file("keystore.properties")
+def keystoreProps = new Properties()
+if (keystorePropsFile.exists()) {
+    keystorePropsFile.withInputStream { keystoreProps.load(it) }
+}
+
+// targetSdk di default, sovrascrivibile da riga di comando per
+// sperimentare: ./gradlew assembleDebug -PtargetSdkOverride=34
+def targetSdkVersion = Integer.parseInt(
+    (findProperty('targetSdkOverride') ?: '36').toString())
+
+android {
+    namespace 'it.davide.uvprofiles'
+    compileSdk 36
+
+    signingConfigs {
+        release {
+            if (keystoreProps.containsKey("storeFile")) {
+                storeFile rootProject.file("keystore/${keystoreProps['storeFile']}")
+                storePassword keystoreProps['storePassword']
+                keyAlias keystoreProps['keyAlias']
+                keyPassword keystoreProps['keyPassword']
+                // Gli schemi di firma non si impostano: minSdk 26 fa usare
+                // ad AGP la v2, e per Play l'AAB viene comunque firmata da
+                // Play App Signing con la chiave dell'app.
+            }
+        }
+    }
+
+    defaultConfig {
+        applicationId "it.davide.uvprofiles"
+        minSdk 26
+        // targetSdk 36 (Android 16): valore minimo richiesto da Google Play
+        // dal 31 agosto 2026 per le nuove app e gli aggiornamenti.
+        //
+        // Nota storica: qui era 34, con un commento che sosteneva che su
+        // Android 15 le app con targetSdk 35 non potessero eseguire su.
+        // Era una conclusione sbagliata: il grant di KernelSU era semplicemente
+        // stato perso perche l'app era stata disinstallata e aveva preso un
+        // uid nuovo. Verificato con lo stesso uid (install -r) che su
+        // targetSdk 35 e 36 root funziona normalmente.
+        //
+        // Sovrascrivibile per sperimentare:
+        //   ./gradlew assembleDebug -PtargetSdkOverride=34
+        targetSdk targetSdkVersion
+        versionCode 1
+        versionName "1.0"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig keystoreProps.containsKey("storeFile")
+                ? signingConfigs.release
+                : signingConfigs.debug
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+// Configurazione Kotlin nativa di AGP 9 (non piu kotlinOptions).
+kotlin {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+    }
+}

@@ -1,0 +1,21 @@
+// Configurazione plugin qui, in forma che l'Upgrade Assistant di Android
+// Studio sa individuare (buildscript classpath).
+//
+// Nota versioni: questo progetto usa Gradle 9.6.0 (impostato da Android
+// Studio nel wrapper). AGP 8.x supporta solo Gradle 8.x, quindi serve AGP 9.x.
+//
+// Da AGP 9.0 il supporto Kotlin e integrato: non si dichiara piu il plugin
+// org.jetbrains.kotlin.android. I sorgenti .kt vengono compilati comunque.
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:9.0.0'
+    }
+}
+
+plugins {
+    id 'com.android.application' version '9.0.0' apply false
+}

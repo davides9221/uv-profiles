@@ -1,0 +1,107 @@
+# UV Profiles
+
+App Android per gestire i profili CPU/GPU di un Samsung Galaxy Note 20
+Ultra (Exynos 990) con root. Sostituisce i vecchi moduli Magisk: i
+profili sono dentro l'app e si applicano con un tocco.
+
+L'app non richiede moduli. Richiede pero un gestore root installato e
+autorizzato (su questo dispositivo Magisk 30.7).
+
+## Cosa fa
+
+Cinque profili, ognuno formato da due cose:
+
+- i **margini di tensione** per dominio, in `/sys/power/percent_margin`
+  (percentuale rispetto alla tensione nominale, piu basso = meno
+  tensione e piu efficienza)
+- i **cap di frequenza** per cluster CPU, in
+  `/sys/devices/system/cpu/cpufreq/policy*/scaling_max_freq`
+
+| Profilo | LITTLE | MIDDLE | PRIME | Margini lit/mid/big |
+|---|---|---|---|---|
+| ECO | 1800 | 1794 | 2002 | -6 / -6 / -7 |
+| BALANCED | 2002 | 2002 | 2002 | -4 / -4 / -5 |
+| SIXCORE | 2002 | 1794 | 1157 | -3 / -4 / 0 |
+| SPORT | max | max | max | -2 / -2 / -3 |
+| OFF | fabbrica | fabbrica | fabbrica | fabbrica |
+
+Frequenze in MHz.
+
+`SIXCORE` e il profilo di uso quotidiano: tiene il cluster veloce a
+1.157 GHz, dove la scala OPP e piu stretta, cosi non scala in
+continuazione. Il nome viene da una versione iniziale che spegneva dei
+core; ora **nessun core viene spento**, tutti restano online.
+
+`OFF` riporta i valori di fabbrica, non azzera. La differenza conta:
+su questo kernel lo `0` non e il default (`lit` e `-3`), quindi
+azzerare lascerebbe il dispositivo in uno stato che non esiste.
+
+## Struttura
+
+```
+app/src/main/
+  kotlin/it/davide/uvprofiles/
+    MainActivity.kt        pulsanti profilo, grafico e testo di stato
+    UvReader.kt           parsing dell'output dello script di lettura
+    RootShell.kt          esecuzione di su, scrittura script su file
+    ClusterChartView.kt   grafico a barre dei tre cluster
+    UvWidgetProvider.kt   widget home screen
+  res/raw/
+    uv_profiles.sh        profili e logica di applicazione
+    uv_profiles_read.sh   lettura dei valori per il pannello STATUS
+```
+
+## Due dettagli non ovvi sugli script
+
+**Gli script vivono in `res/raw`, non come stringhe Kotlin.** In Kotlin `$`
+e il placeholder di interpolazione: uno script di shell ne e pieno, e
+ogni `$` verrebbe risolto da Kotlin invece che dalla shell. Con variabili
+diventate vuote, i percorsi di `/sys/power/percent_margin` (permessi
+`600 root`) diventavano illeggibili e tornavano vuoti **in silenzio**,
+perche l'errore era rediretto su `/dev/null`. Tenendo lo script in
+`res/raw` i byte arrivano al file esattamente come scritti.
+
+**Il separatore dei campi e `@`.** La shell interpreta `|` come pipe
+anche dentro `$()`, e `:` rendeva fragile lo split sui valori negativi
+dei margini.
+
+## Persistenza al boot
+
+L'app da sola non puo riapplicare il profilo dopo un riavvio: serve
+qualcosa che giri all'avvio del sistema, e un'app non puo farlo. Due
+opzioni:
+
+- **modulo Magisk** — un `service.sh` che chiama lo script dell'app:
+  ```
+  sh /data/local/tmp/uv_profiles_apply.sh "$(cat /data/adb/uv-profiles/active)"
+  ```
+  Il profilo attivo e gia salvato in `/data/adb/uv-profiles/active`.
+- **Termux + Termux:Boot** — senza modulo, ma con un'app in piu da
+  installare.
+
+Senza nessuna delle due, dopo un riavvio i valori tornano quelli di
+fabbrica e basta toccare un pulsante.
+
+Il modulo `schedutil-uv2` e una cosa diversa: imposta il governor
+`schedutil` con rate limit come rete di sicurezza se il kernel dovesse
+problemi, e va tenuto.
+
+## Compilare
+
+```
+JAVA_HOME=... ANDROID_HOME=... gradlew assembleDebug
+JAVA_HOME=... ANDROID_HOME=... gradlew bundleRelease
+```
+
+L'ambiente di sviluppo usato:
+
+- JDK 17 (`C:\Program Files\Eclipse Adoptium\jdk-17.0.20.101-hotspot`)
+- `ANDROID_HOME` = `%LOCALAPPDATA%\Android\Sdk`
+- Gradle 9.6.0, AGP 9.0.0, Kotlin integrato in AGP (non applicare
+  `org.jetbrains.kotlin.android`)
+- `minSdk 26`, `targetSdk 36`, `compileSdk 36`
+
+## Firma
+
+Vedi `store/README.md` e `keystore/`. La chiave di upload non va nel
+controllo versione e, se persa, non permette piu aggiornamenti su Play.

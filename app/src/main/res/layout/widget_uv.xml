@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@drawable/widget_bg"
+    android:padding="6dp">
+
+    <TextView
+        android:id="@+id/status"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="UV"
+        android:textColor="#4FC3F7"
+        android:textSize="10sp"
+        android:gravity="center"
+        android:paddingBottom="3dp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/btn_eco"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="ECO"
+            android:textSize="9sp"
+            android:minWidth="0dp"
+            android:minHeight="34dp"
+            android:padding="1dp"
+            android:layout_margin="1dp" />
+
+        <Button
+            android:id="@+id/btn_balanced"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="BAL"
+            android:textSize="9sp"
+            android:minWidth="0dp"
+            android:minHeight="34dp"
+            android:padding="1dp"
+            android:layout_margin="1dp" />
+
+        <Button
+            android:id="@+id/btn_sixcore"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="SIX"
+            android:textSize="9sp"
+            android:minWidth="0dp"
+            android:minHeight="34dp"
+            android:padding="1dp"
+            android:layout_margin="1dp" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/btn_sport"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="SPORT"
+            android:textSize="9sp"
+            android:minWidth="0dp"
+            android:minHeight="34dp"
+            android:padding="1dp"
+            android:layout_margin="1dp" />
+
+        <Button
+            android:id="@+id/btn_off"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="OFF"
+            android:textSize="9sp"
+            android:minWidth="0dp"
+            android:minHeight="34dp"
+            android:padding="1dp"
+            android:layout_margin="1dp" />
+
+        <Button
+            android:id="@+id/btn_status"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="STAT"
+            android:textSize="9sp"
+            android:minWidth="0dp"
+            android:minHeight="34dp"
+            android:padding="1dp"
+            android:layout_margin="1dp" />
+    </LinearLayout>
+
+</LinearLayout>
