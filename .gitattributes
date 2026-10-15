@@ -1,0 +1,14 @@
+# Normalizza i fine riga: su Windows git converte in CRLF e uno script di
+# shell con il ritorno a capo a fine riga non parte su Linux o macOS.
+* text=auto eol=lf
+
+# Questi devono restare CRLF, sono eseguibili Windows.
+*.bat text eol=crlf
+gradlew.bat text eol=crlf
+
+# Binari: niente fine riga, niente conversione.
+*.jar binary
+*.png binary
+*.jks binary
+*.aab binary
+*.apk binary
